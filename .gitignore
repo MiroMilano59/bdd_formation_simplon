@@ -162,4 +162,4 @@ cython_debug/
 #.idea/
 
 # Ignore json fril from `MonCompteFormation` (https://opendata.caissedesdepots.fr/explore/dataset/moncompteformation_catalogueformation)
-/SRC/*.json
+TRAITEMENT_MCF/SRC/*.json
