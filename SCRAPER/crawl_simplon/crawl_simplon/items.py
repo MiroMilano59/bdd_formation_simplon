@@ -5,8 +5,13 @@
 
 import scrapy
 
-
 class CrawlSimplonItem(scrapy.Item):
-    # define the fields for your item here like:
-    # name = scrapy.Field()
-    pass
+    intitule_formation = scrapy.Field()
+    formacodes_code = scrapy.Field()
+    intitule_certification = scrapy.Field()
+    date_limite_candidature = scrapy.Field()
+    type_formation = scrapy.Field()
+    lieu = scrapy.Field()
+    date_debut = scrapy.Field()
+    duree = scrapy.Field()
+    niveau_sortie = scrapy.Field()
