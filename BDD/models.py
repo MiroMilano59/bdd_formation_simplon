@@ -71,7 +71,7 @@ class Formations(SimplonDB):
     Niveau_Sortie = Column(String, nullable=True)
     Resume_Programme = Column(String, nullable=True)
 
-#     # 2. Tecnical details (None so far)
+    # 2. Tecnical details (None so far)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
     code_nsf = relationship('CodesNSF', back_populates='formation')
@@ -79,8 +79,8 @@ class Formations(SimplonDB):
     session = relationship('Sessions', back_populates='formation')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
-    __table_args__ = (UniqueConstraint('Libelle',
-                                       name='Training_name_should_be_unique'),)
+    # __table_args__ = (UniqueConstraint('Libelle',
+    #                                    name='Training_name_should_be_unique'),)
 
 class Organismes(SimplonDB):
     # RAW PARAMETERS AND SETINGS
