@@ -79,8 +79,6 @@ class Formations(SimplonDB):
     session = relationship('Sessions', back_populates='formation')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
-    # __table_args__ = (UniqueConstraint('Libelle',
-    #                                    name='Training_name_should_be_unique'),)
 
 class Organismes(SimplonDB):
     # RAW PARAMETERS AND SETINGS
