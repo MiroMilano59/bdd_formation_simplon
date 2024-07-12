@@ -163,4 +163,6 @@ cython_debug/
 
 # Ignore json file from `MonCompteFormation` (https://opendata.caissedesdepots.fr/explore/dataset/moncompteformation_catalogueformation)
 TRAITEMENT_MCF/SRC/*.json
-TRAITEMENT_MCF/*.ipynb
+
+# CSV
+*.csv
