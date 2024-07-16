@@ -181,7 +181,7 @@ class RNCP(SimplonDB):
     __tablename__ = 'rncp'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formation.Id'), nullable=False)
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RNCP = Column(*foreign_key('rncp_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -197,7 +197,7 @@ class Formacodes(SimplonDB):
     __tablename__ = 'formacodes'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formation.Id'), nullable=False)
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Formacode = Column(*foreign_key('formacodes_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -213,7 +213,7 @@ class RS(SimplonDB):
     __tablename__ = 'rs'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formation.Id'), nullable=False)
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RS = Column(*foreign_key('rs_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -229,7 +229,7 @@ class NSF(SimplonDB):
     __tablename__ = 'nsf'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formation.Id'), nullable=False)
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_NSF = Column(*foreign_key('nsf_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -246,15 +246,15 @@ class RNCP_Formacodes(SimplonDB):
     __tablename__ = 'rncp_formacodes'
 
     # TABLE COLUMNS
-    Code_RNCP = Column(*foreign_key('rncp_info.code'), nullable=False)
-    Formacode = Column(*foreign_key('formacode_info.Code'), nullable=False)
+    Code_RNCP = Column(*foreign_key('rncp_info.Code'), nullable=False)
+    Formacode = Column(*foreign_key('formacodes_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
     code_rncp = relationship('RNCP_Info', back_populates='formacodes')
     formacode = relationship('Formacodes_Info', back_populates='codes_rncp')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
-    __table_args__ = (PrimaryKeyConstraint(*('Code_RNCP', 'formacode'),
+    __table_args__ = (PrimaryKeyConstraint(*('Code_RNCP', 'Formacode'),
                                            name='Composite_primary_key'),)
 
 class RNCP_Codes_NSF(SimplonDB):
