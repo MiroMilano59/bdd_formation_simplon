@@ -33,6 +33,8 @@
 #         pass
 
 from itemadapter import ItemAdapter
+import sqlalchemy.exc as alchemyError
+from BDD import models 
 
 
 class CrawlSimplonPipeline:
@@ -75,3 +77,37 @@ class CrawlSimplonPipeline:
         cleaned_niveau_sortie = [niveau.replace('Sortie : ', '').strip() for niveau in niveau_sortie]
         item['Niveau_Sortie'] = cleaned_niveau_sortie
         return item
+
+
+class FormationDataBasePipeline:
+
+    def open_spider(self, spider):
+        self.session_maker = models.db_connect(echo=False)
+        self.session = self.session_maker()
+
+
+    def add_and_commit(self, item, warner=""):
+        """
+        Commit changes if ACID compliant or rollback otherwise with message.
+
+        Parameter(s):
+            item (MobieDB): Instance (i.e. row) of one table to be added to it. 
+            warner (str): OPTIONAL. Message to display if transaction aborted.
+                          Default: `Transaction aborted. Session rolled back`
+                          Optionally : `warner` can be set to None in order not
+                          to show any warning message. At your own risk !
+        """
+        # PROCESSING WARNING MESSAGE
+        txt = "Transaction aborted. Session rolled back"
+        warner = txt if warner == "" else warner
+
+        # ADDING GIVEN INSTANCE TO THE DATABASE
+        self.session.add(item)
+
+        # COMMITING PROCESS (validation of the transaction)
+        try:
+            self.session.commit()
+        except alchemyError.IntegrityError:
+            self.session.rollback()
+            if warner:
+                print(warner)
