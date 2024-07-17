@@ -16,4 +16,5 @@ def load_data():
     print(df.sort_values(by=['date_extract'])[-10:])
 
 
+
 load_data()

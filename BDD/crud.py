@@ -1,44 +1,44 @@
 #import schema # For test purpose only (and obly this python script !)
 # import dateparser, datetime
-from functools import wraps
-from BDD import models
+# from functools import wraps
+# from BDD import models
 # from sqlalchemy.orm import Session
 
 # CREATING FUNCTION DECORATOR TO MANAGE SESSIONS
-def manage_session(func):
-    """
-    FUNCTION DECORATOR : Gives functions a session and close it at the end.
+# def manage_session(func):
+#     """
+#     FUNCTION DECORATOR : Gives functions a session and close it at the end.
 
-    The purpose of this decorator is to check whether the decorated functions
-    have been given a Session on call. Otherwise, it gives them one and closes
-    it after the function executes.
-    """
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        # BASIC SETTINGS AND INITIALIZATION (looking whether a session exists)
-        if len(args) > 0:
-            session = any([isinstance(argument, Session) for argument in args])
-        else:
-            session = isinstance(kwargs.get('session'), Session)
+#     The purpose of this decorator is to check whether the decorated functions
+#     have been given a Session on call. Otherwise, it gives them one and closes
+#     it after the function executes.
+#     """
+#     @wraps(func)
+#     def wrapper(*args, **kwargs):
+#         # BASIC SETTINGS AND INITIALIZATION (looking whether a session exists)
+#         if len(args) > 0:
+#             session = any([isinstance(argument, Session) for argument in args])
+#         else:
+#             session = isinstance(kwargs.get('session'), Session)
 
-        # CHECKING WHETHER A SESSION IS ACTIVE AND OPEN ONE IF NOT
-        if not session:
-            wrapper_inner_session = schema.db_connect()
-            wrapper_inner_session = wrapper_inner_session()
-            kwargs['session'] = wrapper_inner_session
+#         # CHECKING WHETHER A SESSION IS ACTIVE AND OPEN ONE IF NOT
+#         if not session:
+#             wrapper_inner_session = schema.db_connect()
+#             wrapper_inner_session = wrapper_inner_session()
+#             kwargs['session'] = wrapper_inner_session
 
-        # EXECUTION OF THE FUNCTION
-        wrapped_function = func(*args, **kwargs)
+#         # EXECUTION OF THE FUNCTION
+#         wrapped_function = func(*args, **kwargs)
 
-        # CLOSING TEMPORARY SESSION
-        if not session:
-            wrapper_inner_session.close()
+#         # CLOSING TEMPORARY SESSION
+#         if not session:
+#             wrapper_inner_session.close()
 
-        # WRAPPER OUTPUT
-        return wrapped_function
+#         # WRAPPER OUTPUT
+#         return wrapped_function
 
-    # DECORATOR OUTPUT
-    return wrapper
+#     # DECORATOR OUTPUT
+#     return wrapper
 
 # QUERIES SECTION
 # @manage_session
