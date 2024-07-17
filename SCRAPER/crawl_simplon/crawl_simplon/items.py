@@ -7,7 +7,7 @@ import scrapy
 
 class CrawlSimplonItem(scrapy.Item):
     LibelleFormationSimplon = scrapy.Field()
-    # ResumeProgrammeSimplon = scrapy.Field()
+    ResumeProgrammeSimplon = scrapy.Field()
     NomFormationUrl = scrapy.Field()
     IdFormation = scrapy.Field()
     RncpRsUrls = scrapy.Field()
@@ -37,10 +37,3 @@ class CrawlSimplonItemSession(scrapy.Item):
     Distance = scrapy.Field()
     NomSessionUrl = scrapy.Field()
     IdSession = scrapy.Field()
-
-    
-
-
- 
-
-

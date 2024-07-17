@@ -22,12 +22,10 @@ class SimplonspiderSpiderFormation(scrapy.Spider):
             yield scrapy.Request(formation_url, callback=self.parse_formation)
 
     def parse_formation(self, response):
-
         item = CrawlSimplonItem()
-
         item['LibelleFormationSimplon'] = response.xpath("//h1/text()").get() # Nom de la formation sur le site simplon
 
-        # item['ResumeProgrammeSimplon'] = [programme.strip() for programme in response.xpath('//div[@id="programme-content"]//text()').getall() if programme.strip()]
+        item['ResumeProgrammeSimplon'] = [programme.strip() for programme in response.xpath('//div[@id="programme-content"]//text()').getall() if programme.strip()]
 
         # Récupérer l'id et le nom url de chque formation
         url = response.url

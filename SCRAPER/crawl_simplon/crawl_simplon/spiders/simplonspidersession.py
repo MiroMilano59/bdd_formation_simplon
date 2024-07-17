@@ -2,7 +2,6 @@ import scrapy
 from crawl_simplon.items import CrawlSimplonItemSession
 import re
 
-
 class SimplonspiderSpiderSession(scrapy.Spider):
 
     name = "simplonspidersession"
@@ -23,6 +22,7 @@ class SimplonspiderSpiderSession(scrapy.Spider):
             yield scrapy.Request(response.urljoin(formation_url), callback=self.parse_formation)
 
     def parse_formation(self, response):
+
         item = CrawlSimplonItemSession()
 
         all_sessions_url = response.xpath("//a[contains(@class, 'btn-formation') and contains(text(), 'Les sessions ouvertes')]/@href").get()
@@ -57,3 +57,4 @@ class SimplonspiderSpiderSession(scrapy.Spider):
             item['Duree'] = [duree.strip() for duree in session.xpath(".//i[contains(text(),'hourglass_empty')]/parent::div/text()").getall() if duree.strip()]
             item['Niveau_Sortie'] = [niveau.strip() for niveau in session.xpath(".//i[contains(text(),'school')]/parent::div/text()").getall() if niveau.strip()]
             yield item
+

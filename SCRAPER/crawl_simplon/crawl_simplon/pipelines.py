@@ -3,8 +3,9 @@
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 
-
 # useful for handling different item types with a single interface
+# from itemadapter import ItemAdapter
+
 from itemadapter import ItemAdapter
 import re
 import dateparser
@@ -123,11 +124,10 @@ class CrawlSimplonPipelineSession:
         item = self.clean_distance(item)
         item = self.clean_niveau_sortie(item)
         return item
-
+      
     def clean_organisme_partenaire(self, item):
-        adapter = ItemAdapter(item)
         # Extraire les mots clés Microsoft, Apple et Google de "Libele_Certification"
-        libele_certification = adapter.get('Libele_Certification', '')
+        libele_certification = item.get('Libele_Certification', '')
         partenaires = ['Microsoft', 'Apple', 'Google']
         extracted_partenaires = [partenaire for partenaire in partenaires if partenaire in libele_certification]
         item['Organisme_Partenaire'] = extracted_partenaires
@@ -149,7 +149,6 @@ class CrawlSimplonPipelineSession:
 
     def clean_niveau_sortie(self, item):
         adapter = ItemAdapter(item)
-
         # Retirer "Sortie : " du début de la chaîne "Niveau_Sortie"
         niveau_sortie = adapter.get('Niveau_Sortie', [])
         cleaned_niveau_sortie = [niveau.replace('Sortie : ', '').strip() for niveau in niveau_sortie]
