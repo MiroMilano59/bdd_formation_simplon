@@ -73,9 +73,9 @@ class Organismes(SimplonDB):
 
 class Codes_Info(SimplonDB): # Abstract table (code factorization purpose)
     """
-    Helps factorizing code as it is a common part of some other sub classes
+    Almost ready-to-use table for all code "Info" tables.
 
-    Main purpose is to give an almost ready to use table for all code tables.
+    Helps factorizing code as it is a common part of some other sub classes
     """
     # RAW PARAMETERS AND SETINGS
     __abstract__ = True
@@ -176,12 +176,23 @@ class Sessions(SimplonDB):
                                            name='Composite_primary_key'),)
 
 # Secondary association tables
-class RNCP(SimplonDB):
+class Codes_Formations(SimplonDB): # Abstract table (for code factorization)
+    """
+    Almost ready-to-use table for associations between codes and trainings.
+
+    Helps factorizing code as it is a common part of some other sub classes.
+    """
+    # RAW PARAMETERS AND SETINGS
+    __abstract__ = True
+
+    # COMMON COLUMNS OF THE DERIVED TABLES
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
+
+class RNCP(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'rncp'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RNCP = Column(*foreign_key('rncp_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -192,12 +203,11 @@ class RNCP(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_RNCP'),
                                            name='Composite_primary_key'),)
 
-class Formacodes(SimplonDB):
+class Formacodes(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'formacodes'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Formacode = Column(*foreign_key('formacodes_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -208,12 +218,11 @@ class Formacodes(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Formacode'),
                                            name='Composite_primary_key'),)
 
-class RS(SimplonDB):
+class RS(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'rs'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RS = Column(*foreign_key('rs_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -224,12 +233,11 @@ class RS(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_RS'),
                                            name='Composite_primary_key'),)
 
-class NSF(SimplonDB):
+class NSF(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'nsf'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_NSF = Column(*foreign_key('nsf_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -304,3 +312,5 @@ class RS_Codes_NSF(SimplonDB):
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
     __table_args__ = (PrimaryKeyConstraint(*('Code_RS', 'Code_NSF'),
                                            name='Composite_primary_key'),)
+
+db_connect()

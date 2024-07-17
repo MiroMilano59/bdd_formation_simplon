@@ -164,6 +164,8 @@ cython_debug/
 # Ignore json file from `MonCompteFormation` (https://opendata.caissedesdepots.fr/explore/dataset/moncompteformation_catalogueformation)
 TRAITEMENT_MCF/SRC/*.json
 TRAITEMENT_MCF/*.ipynb
+
+# Ignore .json file download history
 last_update_date.txt
 
 # Ignore sqlite data base files
