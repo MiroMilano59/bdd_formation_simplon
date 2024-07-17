@@ -14,19 +14,21 @@ BOT_NAME = "crawl_simplon"
 SPIDER_MODULES = ["crawl_simplon.spiders"]
 NEWSPIDER_MODULE = "crawl_simplon.spiders"
 
-USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+# USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
 ROBOTSTXT_OBEY = False
 DOWNLOAD_DELAY = random.uniform(0.5, 1)
 RANDOMIZE_DOWNLOAD_DELAY = True
 
 DEFAULT_REQUEST_HEADERS = {
-   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+   "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+   "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
    "Accept-Language": "fr-FR,fr",
 }
 
 ITEM_PIPELINES = {
-   "crawl_simplon.pipelines.CrawlSimplonPipeline": 300,
+   "crawl_simplon.pipelines.CrawlSimplonPipelineFormation": 300,
+   "crawl_simplon.pipelines.CrawlSimplonPipelineSession": 310,
 }
 
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
@@ -48,7 +50,11 @@ FEED_EXPORT_ENCODING = "utf-8"
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
-#COOKIES_ENABLED = False
+COOKIES_ENABLED = False
+
+
+# Configurez le niveau de log pour obtenir des informations de débogage
+LOG_LEVEL = 'DEBUG'
 
 # Disable Telnet Console (enabled by default)
 #TELNETCONSOLE_ENABLED = False

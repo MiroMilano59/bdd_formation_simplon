@@ -1,11 +1,20 @@
 import scrapy
-from crawl_simplon.items import CrawlSimplonItem
+from crawl_simplon.items import CrawlSimplonItemSession
+import re
 
+class SimplonspiderSpiderSession(scrapy.Spider):
 
-class SimplonspiderSpider(scrapy.Spider):
-    name = "simplonspider"
+    name = "simplonspidersession"
+
     allowed_domains = ["simplon.co", "francecompetences.fr"]
     start_urls = ["https://simplon.co/notre-offre-de-formation.html#nos-formations0"]
+
+    custom_settings = {
+        'ITEM_PIPELINES' : {
+            "crawl_simplon.pipelines.CrawlSimplonPipelineSession": 310,
+        },
+        'DUPEFILTER_CLASS': 'scrapy.dupefilters.BaseDupeFilter',
+    }
 
     def parse(self, response):
         formation_urls = response.xpath("//div[@class='card-group-button']/a[contains(text(),'Découvrez')]/@href").getall()
@@ -13,16 +22,29 @@ class SimplonspiderSpider(scrapy.Spider):
             yield scrapy.Request(response.urljoin(formation_url), callback=self.parse_formation)
 
     def parse_formation(self, response):
-        item = CrawlSimplonItem()
+
+        item = CrawlSimplonItemSession()
+
         all_sessions_url = response.xpath("//a[contains(@class, 'btn-formation') and contains(text(), 'Les sessions ouvertes')]/@href").get()
         if all_sessions_url:
-            yield response.follow(all_sessions_url, meta={"item": item}, callback=self.parse_session)
+            yield scrapy.Request(all_sessions_url, meta={"item": item}, callback=self.parse_session)
         
         yield item
 
     def parse_session(self, response):
         item = response.meta["item"]
         sessions = response.xpath("//div[@class='smp-card']")
+
+        # Récupérer l'id et le nom url de chque formation
+        url = response.url
+        pattern = re.compile(r'https://simplon\.co/i-apply/([^/]+)/(\d+)')
+        match = pattern.search(url)
+        if match:
+            nom_session = match.group(1)
+            id_session = match.group(2)
+            item["NomSessionUrl"] = nom_session
+            item["IdSession"] = id_session
+
         for session in sessions:
             item['Libele_Certification'] = session.xpath(".//h2/text()").get()
             day = session.xpath(".//span[@class='day']/text()").get().strip()
