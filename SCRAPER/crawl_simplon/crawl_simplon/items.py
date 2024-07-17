@@ -6,8 +6,25 @@
 import scrapy
 
 class CrawlSimplonItem(scrapy.Item):
-    Libelle = scrapy.Field()
-    Formacodes = scrapy.Field()
+    LibelleFormationSimplon = scrapy.Field()
+    # ResumeProgrammeSimplon = scrapy.Field()
+    NomFormationUrl = scrapy.Field()
+    IdFormation = scrapy.Field()
+    RncpRsUrls = scrapy.Field()
+    RncpRsUrl = scrapy.Field()
+    CodeRS = scrapy.Field()
+    CodeRNCP = scrapy.Field()
+    IntituleCertification = scrapy.Field()
+    EtatCertification = scrapy.Field()
+    FormacodesBrut = scrapy.Field()
+    DateEchanceEnregistrement = scrapy.Field()
+    NiveauDeSortie = scrapy.Field()
+    NfsCode = scrapy.Field()
+    LibelleNfsCode = scrapy.Field()
+    FormaCode = scrapy.Field()
+    LibelleFormaCode = scrapy.Field()
+ 
+class CrawlSimplonItemSession(scrapy.Item):
     Libele_Certification = scrapy.Field()
     Date_Limite_Candidature = scrapy.Field()
     Type_Formation = scrapy.Field()
@@ -15,4 +32,15 @@ class CrawlSimplonItem(scrapy.Item):
     Date_Debut = scrapy.Field()
     Duree = scrapy.Field()
     Niveau_Sortie = scrapy.Field()
-    Resume_Programme = scrapy.Field()
+    Organisme_Partenaire = scrapy.Field()
+    Alternance = scrapy.Field()
+    Distance = scrapy.Field()
+    NomSessionUrl = scrapy.Field()
+    IdSession = scrapy.Field()
+
+    
+
+
+ 
+
+
