@@ -1,46 +1,97 @@
 #import schema # For test purpose only (and obly this python script !)
 # import dateparser, datetime
-# from functools import wraps
-# from BDD import models
-# from sqlalchemy.orm import Session
+from BDD import models
+from functools import wraps
+from sqlalchemy.orm import Session
+import sqlalchemy.exc as alchemyError
 
 # CREATING FUNCTION DECORATOR TO MANAGE SESSIONS
-# def manage_session(func):
-#     """
-#     FUNCTION DECORATOR : Gives functions a session and close it at the end.
+def manage_session(func):
+    """
+    FUNCTION DECORATOR : Gives functions a session and close it at the end.
 
-#     The purpose of this decorator is to check whether the decorated functions
-#     have been given a Session on call. Otherwise, it gives them one and closes
-#     it after the function executes.
-#     """
-#     @wraps(func)
-#     def wrapper(*args, **kwargs):
-#         # BASIC SETTINGS AND INITIALIZATION (looking whether a session exists)
-#         if len(args) > 0:
-#             session = any([isinstance(argument, Session) for argument in args])
-#         else:
-#             session = isinstance(kwargs.get('session'), Session)
+    The purpose of this decorator is to check whether the decorated functions
+    have been given a Session on call. Otherwise, it gives them one and closes
+    it after the function executes.
+    """
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        # BASIC SETTINGS AND INITIALIZATION (looking whether a session exists)
+        if len(args) > 0:
+            session = any([isinstance(argument, Session) for argument in args])
+        else:
+            session = isinstance(kwargs.get('session'), Session)
 
-#         # CHECKING WHETHER A SESSION IS ACTIVE AND OPEN ONE IF NOT
-#         if not session:
-#             wrapper_inner_session = schema.db_connect()
-#             wrapper_inner_session = wrapper_inner_session()
-#             kwargs['session'] = wrapper_inner_session
+        # CREATES A TEMPORARY SESSION IF NON WAS PROVIDED ON FUNCTION CALL
+        if not session:
+            wrapper_inner_session = models.db_connect()
+            wrapper_inner_session = wrapper_inner_session()
+            kwargs['session'] = wrapper_inner_session
 
-#         # EXECUTION OF THE FUNCTION
-#         wrapped_function = func(*args, **kwargs)
+        # EXECUTION OF THE FUNCTION
+        wrapped_function = func(*args, **kwargs)
 
-#         # CLOSING TEMPORARY SESSION
-#         if not session:
-#             wrapper_inner_session.close()
+        # CLOSING TEMPORARY SESSION
+        if not session:
+            wrapper_inner_session.close()
 
-#         # WRAPPER OUTPUT
-#         return wrapped_function
+        # WRAPPER OUTPUT
+        return wrapped_function
 
-#     # DECORATOR OUTPUT
-#     return wrapper
+    # DECORATOR OUTPUT
+    return wrapper
 
 # QUERIES SECTION
+@manage_session
+def get_siret(sesson=None):
+    """
+    Returns a set of all siret already in the 'organinsme' table of the DB.
+
+    Parameter(s):
+        session : OPTIONAL. SQLAlchemy sesson object. If not provided then one
+                  temporary session will be open and closed at the end.
+    """
+    pass
+
+# CENTRALIZED 'add' AND 'commit' FEATURES MANAGEMENT FEATURE
+@manage_session
+def add_and_commit(items, session=None, warner=""):
+    """
+    Commit changes if ACID compliant or rollback otherwise with message.
+
+    Parameter(s):
+        item    (list): Instance(s) to be added to their respective tables.
+                        `item` can be either a single instance or a list of
+                        instances to add to the database.
+        session       : OPTIONAL. SQLAlchemy sesson object. If not provided
+                        then one temporary session will be open and closed
+                        at the end.
+        warner   (str): OPTIONAL. Message to display if transaction aborted.
+                        Default: `Transaction aborted. Session rolled back`
+                        Optionally : `warner` can be set to None in order not
+                        to show any warning message. At your own risk !
+    """
+    # PROCESSING WARNING MESSAGE
+    txt = "Transaction aborted. Session rolled back"
+    warner = txt if warner == "" else warner
+
+    # ADDING GIVEN INSTANCE TO THE DATABASE
+    #session.add(item)                    # Old release/version of the function
+    session.add_all(items if isinstance(items, list) else [items])
+
+    # COMMITING PROCESS (validation of the transaction of restoring last state)
+    try:
+        session.commit()
+    except alchemyError.IntegrityError:
+        session.rollback()
+        if warner:
+            print(warner)
+
+
+
+
+
+# VARIOUS FROM OTHER SIMILAR PROJECTS (inspiration purpose)
 # @manage_session
 # def get_movie_id(title, date=None, session=None, warns=True):
 #     """
