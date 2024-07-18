@@ -170,3 +170,6 @@ last_update_date.txt
 
 # Ignore sqlite data base files
 *.db
+
+# Ignore CSV files
+*.csv
