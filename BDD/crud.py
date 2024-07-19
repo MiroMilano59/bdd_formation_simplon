@@ -1,4 +1,3 @@
-#import schema # For test purpose only (and obly this python script !)
 # import dateparser, datetime
 from BDD import models
 from functools import wraps
@@ -43,7 +42,7 @@ def manage_session(func):
 
 # QUERIES SECTION
 @manage_session
-def get_siret(sesson=None):
+def get_siret(session=None):
     """
     Returns a set of all siret already in the 'organinsme' table of the DB.
 
@@ -51,7 +50,11 @@ def get_siret(sesson=None):
         session : OPTIONAL. SQLAlchemy sesson object. If not provided then one
                   temporary session will be open and closed at the end.
     """
-    pass
+    # QUERYING THE DATABASE
+    query = session.query(models.Organismes.Siret).all()
+
+    # FUNCTION OUTPUT (Explodes tuples in the result and returns a set)
+    return set(item[0] for item in query)
 
 # CENTRALIZED 'add' AND 'commit' FEATURES MANAGEMENT FEATURE
 @manage_session
@@ -82,13 +85,14 @@ def add_and_commit(items, session=None, warner=""):
     # COMMITING PROCESS (validation of the transaction of restoring last state)
     try:
         session.commit()
-    except alchemyError.IntegrityError:
+    except alchemyError.IntegrityError as e:
         session.rollback()
         if warner:
             print(warner)
+    # session.commit()
 
 
-
+#print(type(get_siret()))
 
 
 # VARIOUS FROM OTHER SIMILAR PROJECTS (inspiration purpose)

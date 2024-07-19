@@ -65,7 +65,7 @@ class Organismes(SimplonDB):
     __tablename__ = 'organismes'
 
     # TABLE SPECIFIC COLUMNS
-    Nom = Column(String, nullable=False)
+    Nom = Column(String, nullable=True)
     Siret = Column(String, primary_key=True, autoincrement=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -135,7 +135,7 @@ class Formations(SimplonDB):
     Id = Column(Integer, primary_key=True, autoincrement=True)
     Libelle = Column(String, nullable=False)
     Siret_OF = Column(*foreign_key('organismes.Siret'), nullable=False)
-    Niveau_Sortie = Column(String, nullable=True)
+    Simplon_Id = Column(String, nullable=False)
     Resume_Programme = Column(String, nullable=True)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -166,6 +166,7 @@ class Sessions(SimplonDB):
     Duree = Column(String, nullable=True)
     Alternance = Column(Boolean, nullable=True, default=False)
     Distanciel = Column(Boolean, nullable=True, default=False)
+    Niveau_Sortie = Column(String, nullable=True)
     Libelle_certif = Column(String, nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -307,10 +308,8 @@ class RS_Codes_NSF(SimplonDB):
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
     code_rs = relationship('RS_Info', back_populates='codes_nsf')
-    code_nsf = relationship('NFS_Info', back_populates='codes_rs')
+    code_nsf = relationship('NSF_Info', back_populates='codes_rs')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
     __table_args__ = (PrimaryKeyConstraint(*('Code_RS', 'Code_NSF'),
                                            name='Composite_primary_key'),)
-
-db_connect()
