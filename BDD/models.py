@@ -135,7 +135,7 @@ class Formations(SimplonDB):
     Id = Column(Integer, primary_key=True, autoincrement=True)
     Libelle = Column(String, nullable=False)
     Siret_OF = Column(*foreign_key('organismes.Siret'), nullable=False)
-    Simplon_Id = Column(String, nullable=False)
+    Simplon_Id = Column(String, nullable=True)
     Resume_Programme = Column(String, nullable=True)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -157,9 +157,9 @@ class Sessions(SimplonDB):
     # SPECIFIC TABLE COLUMNS
     Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Nom_Dept = Column(String, nullable=True)
-    Code_Dept = Column(Integer, nullable=False) # Ususal french dept. number
+    Code_Dept = Column(String, nullable=False)      # Usual french dept. number
     Nom_Region = Column(String, nullable=True)
-    Code_Region = Column(Integer, nullable=True)
+    Code_Region = Column(String, nullable=True)
     Ville = Column(String, nullable=True)
     Date_Debut = Column(Date, nullable=True)
     Date_Lim_Cand = Column(Date, nullable=True)

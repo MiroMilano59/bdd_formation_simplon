@@ -47,7 +47,7 @@ def get_siret(session=None):
     Returns a set of all siret already in the 'organinsme' table of the DB.
 
     Parameter(s):
-        session : OPTIONAL. SQLAlchemy sesson object. If not provided then one
+        session : OPTIONAL. SQLAlchemy session object. If not provided then one
                   temporary session will be open and closed at the end.
     """
     # QUERYING THE DATABASE
@@ -56,9 +56,25 @@ def get_siret(session=None):
     # FUNCTION OUTPUT (Explodes tuples in the result and returns a set)
     return set(item[0] for item in query)
 
+@manage_session
+def get_trainings(session=None):
+    """
+    Returns a set of all trainings already in the 'formations' table of the DB.
+
+    Parameter(s):
+        session : OPTIONAL. SQLAlchemy session object. If not provided then one
+                  temporary session will be open and closed at the end.
+    """
+
+    # BASIC SETTINGS & INITIALIZATIONS
+    columns = [models.Formations.Siret_OF, models.Formations.Libelle]
+
+    # FUNCTION OUTPUT (returns a set of the query)
+    return session.query(*columns).all()
+
 # CENTRALIZED 'add' AND 'commit' FEATURES MANAGEMENT FEATURE
 @manage_session
-def add_and_commit(items, session=None, warner=""):
+def add_and_commit(items, session=None, warner="", verbose=True):
     """
     Commit changes if ACID compliant or rollback otherwise with message.
 
@@ -73,6 +89,8 @@ def add_and_commit(items, session=None, warner=""):
                         Default: `Transaction aborted. Session rolled back`
                         Optionally : `warner` can be set to None in order not
                         to show any warning message. At your own risk !
+        verbose (bool): Whether to gives details when exceptions raised.
+                        Default value is True.
     """
     # PROCESSING WARNING MESSAGE
     txt = "Transaction aborted. Session rolled back"
@@ -87,9 +105,8 @@ def add_and_commit(items, session=None, warner=""):
         session.commit()
     except alchemyError.IntegrityError as e:
         session.rollback()
-        if warner:
-            print(warner)
-    # session.commit()
+        _ = print(warner) if warner else None
+        _ = print(f'Exception details:\n{e}') if verbose else None
 
 
 #print(type(get_siret()))
