@@ -82,7 +82,7 @@ class Codes_Info(SimplonDB): # Abstract table (code factorization purpose)
 
     # COMMON COLUMNS OF THE DERIVED TABLES
     Code = Column(String, primary_key=True, autoincrement=False)
-    Libelle = Column(String, nullable=False)
+    Libelle = Column(String, nullable=True)
 
 class RNCP_Info(Codes_Info):
     # RAW PARAMETERS AND SETINGS

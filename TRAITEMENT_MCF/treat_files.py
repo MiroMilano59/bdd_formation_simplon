@@ -35,6 +35,10 @@ def load_data():
     save_new_sessions_to_database(data=data, session=session)
     update_sessions_status_in_database(data=data, session=session)
     save_rncp_codes_to_database(data=data, session=session)
+    save_rs_codes_to_database(data=data, session=session)
+    save_nsf_codes_to_database(data=data, session=session)
+    save_formacodes_to_database(data=data, session=session)
+    update_codes_info_in_database(data=data, session=session)
 
     # CLOSING THE SESSION
     session.close()
@@ -134,16 +138,16 @@ def save_new_sessions_to_database(data, session):
 
     # BASIC SETTINGS & INITIALIZATION (Management of column names)
     keys = ['Formation_Id', 'Code_Session']            # Composite primary key
-    cols = keys + ['nom_departement',
+    cols = keys + ['nom_departement',                  # Dataframe column names
                    'nom_region',
                    'code_departement',
                    'code_region',
-                   'libelle_niveau_sortie_formation']  # Dataframe column names
-    fields = keys + ['Nom_Dept',
+                   'libelle_niveau_sortie_formation']
+    fields = keys + ['Nom_Dept',                       # Database column names
                      'Nom_Region',
                      'Code_Dept',
                      'Code_Region',
-                     'Niveau_Sortie']                  # Database column names
+                     'Niveau_Sortie']
 
     # DROP ALL DUPLICATE TRAININGS FROM THE SOURCE DATAFRAME (keeps one only!)
     sort_by = keys + cols[-1:]
@@ -178,11 +182,14 @@ def update_sessions_status_in_database(data, session):
 
 def save_rncp_codes_to_database(data, session):
     """
-    Compare retrieved RNCP codes with those in the database and add new ones.
+    Adds RNCP codes from the dataframe that are not in the database.
+
+    This function checks for RNCP codes in the provided dataframe and adds
+    those that are not already stored in 'rncp_info' table of the database.
 
     Parameters:
         data (pd.DataFrame): A pandas DataFrame with the following columns:
-            + `code_rncp`:
+            + `code_rncp`
             + `intitule_certification`
         session (Session): A SQLAlchemy session object for database connection. 
             For more details, refer to the SQLAlchemy documentation.
@@ -192,11 +199,175 @@ def save_rncp_codes_to_database(data, session):
         RNCP codes to the database if ever there are any new RNCP codes to add.
     """
 
-    # BASOC SETTINGS & INITIALIZATION
-    cols = get_columns_from_docstring()
+    # BASIC SETTINGS & INITIALIZATION
+    key = 'code_rncp'
+    cols = [key, 'intitule_certification']             # Dataframe column names
+    fields = ['Code', 'Libelle']                       # Database column names
 
-    print(cols)
-    
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    records = crud.get_codes_list(cde_type='rncp', session=session)
+
+
+    # DROP ALL DUPLICATE CODES OR NON RNCP CODES OR ALREADY REGISTERED
+    codes = data[cols][data[key] != '-1'].drop_duplicates(subset=key)
+    codes.drop(index=codes.index[codes[key].isin(records)], inplace=True)
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if len(codes) > 0:
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'rncp_info', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        codes.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+def save_rs_codes_to_database(data, session):
+    """
+    Adds RS codes from the dataframe that are not in the database.
+
+    This function checks for RS codes in the provided dataframe and adds
+    those that are not already stored in 'rs_info' table of the database.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `code_inventaire`
+            + `intitule_certification`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        RS codes to the database if ever there are any new RS codes to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION
+    key = 'code_inventaire'
+    cols = [key, 'intitule_certification']             # Dataframe column names
+    fields = ['Code', 'Libelle']                       # Database column names
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    records = crud.get_codes_list(cde_type='rs', session=session)
+
+    # DROP ALL DUPLICATE CODES OR NON RNCP CODES OR ALREADY REGISTERED
+    codes = data[cols][data[key] != '-1'].drop_duplicates(subset=key)
+    codes.drop(index=codes.index[codes[key].isin(records)], inplace=True)
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if len(codes) > 0:
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'rs_info', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        codes.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+def save_nsf_codes_to_database(data, session):
+    """
+    Adds NSF codes from the dataframe that are not in the database.
+
+    This function checks for NSF codes in the provided dataframe and adds
+    those that are not already stored in 'nsf_info' table of the database.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `nsf_code_1`
+            + `nsf_code_2`
+            + `nsf_code_3`
+            + `libelle_nsf_1`
+            + `libelle_nsf_2`
+            + `libelle_nsf_3`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        NSF codes to the database if ever there are any new NSF codes to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION
+    key = 'Code'
+    fields = [key, 'Libelle']                           # Database column names
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    records = crud.get_codes_list(cde_type='nsf', session=session)
+
+    # RETRIEVES ALL NSF CODES FROM THE DATAFRAME TOGETHER WITH THEIR LABEL
+    codes = []
+    for i in range(1, 4):
+        code, label = f'code_nsf_{i}', f'libelle_nsf_{i}'
+        codes.extend(list(zip(data[code], data[label])))
+
+    # IMPLEMENTS A DATAFRAME WITH THE RETRIEVED CODES
+    codes = pd.DataFrame(columns=fields, data=codes).dropna(subset=key)
+
+    # DROP ALL DUPLICATE CODES OR NON RNCP CODES OR ALREADY REGISTERED
+    codes.drop_duplicates(subset=key, inplace=True)
+    codes.drop(index=codes.index[codes[key].isin(records)], inplace=True)
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if len(codes) > 0:
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'nsf_info', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        codes.to_sql(con=session.get_bind(), **kwargs)
+
+def save_formacodes_to_database(data, session):
+    """
+    Adds formacodes from the dataframe that are not in the database.
+
+    This function checks for formacodes in the provided dataframe and adds
+    those that are not already stored in 'formacodes_info' table in database.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `code_formacode_1`
+            + `code_formacode_2`
+            + `code_formacode_3`
+            + `code_formacode_4`
+            + `code_formacode_5`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        formacodes to the database if ever there are any new formacodes to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION
+    key = 'Code'             # Primary key for target table ('formacodes_info')
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    records = crud.get_codes_list(cde_type='formacode', session=session)
+
+    # RETRIEVES ALL NSF CODES FROM THE DATAFRAME TOGETHER WITH THEIR LABEL
+    codes = []
+    for i in range(1, 6):
+        codes.extend(data[f'code_formacode_{i}'].dropna().tolist())
+
+    # IMPLEMENTS A DATAFRAME WITH THE RETRIEVED CODES
+    codes = pd.DataFrame(columns=[key], data=codes)
+
+    # DROP ALL DUPLICATE CODES OR NON RNCP CODES OR ALREADY REGISTERED
+    codes.drop_duplicates(subset=key, inplace=True)
+    codes.drop(index=codes.index[codes[key].isin(records)], inplace=True)
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if len(codes) > 0:
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        codes.to_sql(name='formacodes_info', con=session.get_bind(), **kwargs)
+
+def update_codes_info_in_database(data, session):
+    """Not implemented yet but purpose is to update codes title ('Libelle') and
+    end date ('Date_Fin'). Target tables of the function:
+    `rncp_Info`, `rs_info`, `nsf_info` and `formacodes_info`"""
     pass
 
 # 3. Auxiliary features (i.e. various & helper functions)
@@ -221,7 +392,7 @@ def get_dataframe(file: str = file):
     # BASIC SETTINGS & INITIALIZATION (customizing json fields data type)
     dtype = "string[pyarrow]"
     fields = ['siret', 'code_inventaire', 'code_rncp']
-    fields += ['code_departement', 'code_region']
+    fields.extend(['code_departement', 'code_region'])
     data_dtypes = {field: dtype for field in fields}
     data_dtypes.update({f"code_nsf_{i}": dtype for i in range(1,4)})
     data_dtypes.update({f"code_formacode_{i}": dtype for i in range(1,6)})

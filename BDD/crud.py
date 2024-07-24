@@ -95,6 +95,37 @@ def get_modules(session=None):
     return session.query(*columns).all()
 
 @manage_session
+def get_codes_list(cde_type, session=None):
+    """
+    Returns a list with all the specified code type already registered
+
+    Parameters:
+        cde_type (str): The type of the code between:
+            + `rs`
+            + `nsf`
+            + `rncp`
+            + `formacode` : Default value
+        session (optional): SQLAlchemy session object. If not provided, then
+            a temporary session will be opened and closed at the end.
+
+    Returns: python list
+    """
+
+    # BASIC SETTINGS & INITIALIZATIONS (implements a table selector)
+    table = {'rs': models.RS_Info,
+              'nsf': models.NSF_Info,
+              'rncp': models.RNCP_Info,
+              'formacode': models.Formacodes_Info}
+
+    # PROCESSING USER CHOICE FOR `type` PARAMETER
+    cde_type = cde_type.lower() if isinstance(cde_type, str) else 'formacode'
+    cde_type = cde_type if cde_type in table.keys() else 'formacode'
+
+
+    # FUNCTION OUTPUT (returns a set of the query)
+    return set(item[0] for item in session.query(table[cde_type].Code).all())
+
+@manage_session
 def get_trainings_id(trainings=None, session=None, as_dict=True):
     """
     Returns the unique `Id` code for each of the specified trainings.
