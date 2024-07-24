@@ -39,6 +39,7 @@ def load_data():
     save_nsf_codes_to_database(data=data, session=session)
     save_formacodes_to_database(data=data, session=session)
     update_codes_info_in_database(data=data, session=session)
+    associate_trainings_and_rncp_codes(data=data, session=session)
 
     # CLOSING THE SESSION
     session.close()
@@ -81,8 +82,8 @@ def save_trainings_to_database(data, session):
     """
 
     # BASIC SETTINGS & INITIALIZATION (Management of column names)
-    cols = ['siret', 'intitule_formation', 'points_forts'] # Dataframe columns
-    fields = ['Siret_OF', 'Libelle', 'Resume_Programme']   # Database columns
+    cols = ['siret', 'intitule_formation', 'points_forts']  # Dataframe columns
+    fields = ['Siret_OF', 'Libelle', 'Resume_Programme']    # Database columns
 
     # DROP ALL DUPLICATE TRAININGS FROM THE SOURCE DATAFRAME (keeps one only!) 
     courses = data[cols].drop_duplicates(subset=cols[:-1])
@@ -369,6 +370,56 @@ def update_codes_info_in_database(data, session):
     end date ('Date_Fin'). Target tables of the function:
     `rncp_Info`, `rs_info`, `nsf_info` and `formacodes_info`"""
     pass
+
+def associate_trainings_and_rncp_codes(data, session):
+    """
+    Fills association table between trainings and RNCP codes.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `Formation_Id`:
+                See 'save_trainings_to_database' function documentation.
+                Also refer to the 'add_trainings_id_to_dataframe' function.
+            + `code_rncp`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        association to the `RNCP` table within the database if ever there are
+        any new associations to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION (Management of column names)
+    cols = ['Formation_Id', 'code_rncp']  # Dataframe columns
+    fields = ['Formation_Id', 'Code_RNCP']    # Database columns
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    kwargs = {'cde_type': 'rncp', 'session': session}
+    records = crud.get_trainings_associations_list(**kwargs)
+
+    # RESTRICTS DATAFRAME TO ASSOCIATIONS ONLY AND DROPS ALL DUPLICATES ROWS
+    associations = data[cols][data['code_rncp'] != '-1'].dropna()
+    associations = associations.drop_duplicates().sort_values('Formation_Id')
+
+    # RETRIEVES THE LISTING OF THE NON DUPLICATE ASSOCIATIONS (maybe new ones!) 
+    pairs = list(zip(*[associations[column] for column in cols]))
+
+    # LOCATES NEW TRAININGS TO SAVE AND DEDUCES INDEXES TO DROP FROM `courses`
+    to_record = set(pairs) - set(records)
+    indexes_to_drop = [pair not in to_record for pair in pairs]
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if not all(indexes_to_drop):
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'rncp', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        associations.drop(index=associations.index[indexes_to_drop], inplace=True)
+        associations.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
 
 # 3. Auxiliary features (i.e. various & helper functions)
 def get_dataframe(file: str = file):
