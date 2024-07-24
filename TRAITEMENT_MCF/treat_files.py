@@ -34,6 +34,7 @@ def load_data():
     save_trainings_to_database(data=data, session=session)
     save_new_sessions_to_database(data=data, session=session)
     update_sessions_status_in_database(data=data, session=session)
+    save_rncp_codes_to_database(data=data, session=session)
 
     # CLOSING THE SESSION
     session.close()
@@ -137,17 +138,15 @@ def save_new_sessions_to_database(data, session):
                    'nom_region',
                    'code_departement',
                    'code_region',
-                   'intitule_certification',
                    'libelle_niveau_sortie_formation']  # Dataframe column names
     fields = keys + ['Nom_Dept',
                      'Nom_Region',
                      'Code_Dept',
                      'Code_Region',
-                     'Libelle_Certif',
                      'Niveau_Sortie']                  # Database column names
 
     # DROP ALL DUPLICATE TRAININGS FROM THE SOURCE DATAFRAME (keeps one only!)
-    sort_by = keys + cols[-2:]
+    sort_by = keys + cols[-1:]
     courses = data[cols].sort_values(by=sort_by).drop_duplicates(subset=keys)
 
     # RETRIEVES THE LISTING OF THE NON DUPLICATE SESSIONS (maybe new records!) 
@@ -175,6 +174,29 @@ def save_new_sessions_to_database(data, session):
 def update_sessions_status_in_database(data, session):
     """Not implemented yet but purpose is to update status essentially
     and alternance and Distanciel columns as well. To be considered again"""
+    pass
+
+def save_rncp_codes_to_database(data, session):
+    """
+    Compare retrieved RNCP codes with those in the database and add new ones.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `code_rncp`:
+            + `intitule_certification`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        RNCP codes to the database if ever there are any new RNCP codes to add.
+    """
+
+    # BASOC SETTINGS & INITIALIZATION
+    cols = get_columns_from_docstring()
+
+    print(cols)
+    
     pass
 
 # 3. Auxiliary features (i.e. various & helper functions)

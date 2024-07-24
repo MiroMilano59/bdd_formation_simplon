@@ -168,7 +168,7 @@ class Sessions(SimplonDB):
     Alternance = Column(Integer, nullable=False, server_default='0')
     Distanciel = Column(Integer, nullable=False, server_default='0')
     Niveau_Sortie = Column(String, nullable=True)
-    Libelle_Certif = Column(String, nullable=True)
+    Libelle_Session = Column(String, nullable=True)
     Statut = Column(Enum('Active', 'Inactive', name='status_enum'),
                     nullable=False, server_default='Active')
 
