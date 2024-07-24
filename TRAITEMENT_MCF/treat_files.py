@@ -2,6 +2,7 @@ import inspect
 import regex as re
 import pandas as pd
 from BDD import models, crud
+import time
 
 # BASIC SETTINGS & INITIALIZATION
 file = "TRAITEMENT_MCF/SRC/data_formation.json"  # Path to the most recent json
@@ -31,7 +32,8 @@ def load_data():
     session = get_session()
     save_organizations_to_database(data=data, session=session)
     save_trainings_to_database(data=data, session=session)
-    save_sessions_to_database(data=data, session=session)
+    save_new_sessions_to_database(data=data, session=session)
+    update_sessions_status_in_database(data=data, session=session)
 
     # CLOSING THE SESSION
     session.close()
@@ -43,7 +45,7 @@ def save_organizations_to_database(data, session):
 
     Parameter(s):
         data    : Pandas dataframe with 'siret' and 'nom_of' columns.
-        session : OPTIONAL. 'session' object to connect the database.
+        session : 'session' object to connect the database.
                   For any details see SQLAlchemy documentation.
     """
 
@@ -56,9 +58,6 @@ def save_organizations_to_database(data, session):
 
     # SAVE UNKNOWN ORGANIZATIONS INTO THE DEDICATED TABLE OF THE DATABASE
     if sirets:
-        print("##############################################################")
-        print('DETECTED NEW SIRETS TO ADD')
-        print("##############################################################")
         # KEEPS ONLY ONE COPY (i.e. only one line) OF EACH UNKNOWN ORGANIZATION
         sirets = data[fields.keys()][data['siret'].isin(sirets)]
         sirets = sirets.drop_duplicates(subset='siret').rename(columns=fields)
@@ -71,101 +70,156 @@ def save_trainings_to_database(data, session):
     Retrieves organisations data and updates the dedidacted table in database.
 
     Parameter(s):
-        data    : Pandas dataframe with 'siret' and 'intitule_certification'.
-        session : OPTIONAL. 'session' object to connect the database.
+        data    : Pandas dataframe with 'siret' and 'intitule_formation'.
+        session : 'session' object to connect the database.
                   For any details see SQLAlchemy documentation.
     """
 
     # BASIC SETTINGS & INITIALIZATION (Management of column names)
-    cols = ['siret', 'intitule_certification', 'points_forts']      # Dataframe
-    fields = ['Siret_OF', 'Libelle', 'Resume_Programme']            # Database
+    cols = ['siret', 'intitule_formation', 'points_forts'] # Dataframe columns
+    fields = ['Siret_OF', 'Libelle', 'Resume_Programme']   # Database columns
 
-    # GETS A DICTIONARY TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
-    labels = {json_lab: model_lab for json_lab, model_lab in zip(cols, fields)}
+    # DROP ALL DUPLICATE TRAININGS FROM THE SOURCE DATAFRAME (keeps one only!) 
+    courses = data[cols].drop_duplicates(subset=cols[:-1])
 
-    # GETS ALL TRAININGS ALREADY REGISTERED IN THE DATABASE
+    # RETRIEVES THE LISTING OF THE NON DUPLICATE TRAININGS (maybe new records!) 
+    trainings = list(zip(*[courses[column] for column in cols[:-1]]))
+
+    # GETS ALL TRAININGS ALREADY REGISTERED IN THE DATABASE (to compare)
     records = crud.get_trainings(session=session)
-    records = pd.DataFrame(columns=cols[:-1], data=records)
 
-    # GETS ALL UNKNOWN TRAININGS ONLY (So performs a comparison with database)
-    trainings = data[cols].drop_duplicates(subset=cols[:-1])
-    trainings = pd.concat((trainings, records), axis=0, ignore_index=True)
-    trainings.drop_duplicates(subset=cols[:-1], keep=False, inplace=True)
+    # LOCATES NEW TRAININGS TO SAVE AND DEDUCES INDEXES TO DROP FROM `courses`
+    to_record = set(trainings) - set(records)
+    indexes_to_drop = [training not in to_record for training in trainings]
 
     # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
-    if len(trainings) > 0:
+    if not all(indexes_to_drop):
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
         kwargs = {'name': 'formations', 'index': False, 'if_exists': 'append'}
-        trainings.rename(columns=labels, inplace=True)
-        trainings.to_sql(con=session.get_bind(), **kwargs)
 
-def save_sessions_to_database(data, session):
+        # DATA SAVING
+        courses.drop(index=courses.index[indexes_to_drop], inplace=True)
+        courses.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+    # RETRIEVES TRAINING ID CODES AND PUT THEM IN THE DATAFRAME
+    add_trainings_id_to_dataframe(data=data, session=session)
+
+def save_new_sessions_to_database(data, session):
     """
-    Retrieves sessions data and updates the dedidacted table in database.
+    Retrieves new sessions data and adds them to the 'sessions' table.
 
-    Parameter(s):
-        data    : Pandas dataframe with the following required columns.
-                    + `siret`
-                    + `intitule_certification`
-                    + `code_departement`
-        session : OPTIONAL. 'session' object to connect the database.
-                  For any details see SQLAlchemy documentation.
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `Formation_Id`:
+                See 'save_trainings_to_database' function documentation.
+                Also refer to the 'add_trainings_id_to_dataframe' function.
+            + `Code_Session`: Refer to `add_session_code_column_to_dataframe`.
+            + `nom_departement`
+            + `nom_region`
+            + `code_departement`
+            + `code_region`
+            + `libelle_niveau_sortie_formation`
+            + `intitule_certification`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        sessions to the database if there are any new sessions to add.
     """
 
-    
+    # BASIC SETTINGS & INITIALIZATION (Management of column names)
+    keys = ['Formation_Id', 'Code_Session']            # Composite primary key
+    cols = keys + ['nom_departement',
+                   'nom_region',
+                   'code_departement',
+                   'code_region',
+                   'intitule_certification',
+                   'libelle_niveau_sortie_formation']  # Dataframe column names
+    fields = keys + ['Nom_Dept',
+                     'Nom_Region',
+                     'Code_Dept',
+                     'Code_Region',
+                     'Libelle_Certif',
+                     'Niveau_Sortie']                  # Database column names
+
+    # DROP ALL DUPLICATE TRAININGS FROM THE SOURCE DATAFRAME (keeps one only!)
+    sort_by = keys + cols[-2:]
+    courses = data[cols].sort_values(by=sort_by).drop_duplicates(subset=keys)
+
+    # RETRIEVES THE LISTING OF THE NON DUPLICATE SESSIONS (maybe new records!) 
+    modules = list(zip(*[courses[column] for column in keys]))
+
+    # GETS ALL SESSIONS ALREADY REGISTERED IN THE DATABASE (to compare)
+    records = crud.get_modules(session=session)
+
+    # LOCATES NEW SESSIONS TO SAVE AND DEDUCES INDEXES TO DROP FROM `sessions`
+    to_record = set(modules) - set(records)
+    indexes_to_drop = [module not in to_record for module in modules]
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if not all(indexes_to_drop):
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'sessions', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        courses.drop(index=courses.index[indexes_to_drop], inplace=True)
+        courses.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+def update_sessions_status_in_database(data, session):
+    """Not implemented yet but purpose is to update status essentially
+    and alternance and Distanciel columns as well. To be considered again"""
     pass
+
 # 3. Auxiliary features (i.e. various & helper functions)
 def get_dataframe(file: str = file):
     """
     Open the `.json` file and returns a dataframe. No arguments required.
 
+    Basically, this function does a little bit more than just converting the
+    source file (`.json` type). It is also a scheduler for successive cleaning
+    opertaions (i.e. dedicated function calls) to finally not only return a
+    dataframe but a clean dataframe. This is somehow a critical function as it
+    is in charge, together with subsequent cleaning features, of ensuring the
+    quality of the data finally sent to the database.
+
     Parameter(s):
-        file (str): OPTIONAL. Path to the `.json` source file.
                     By default : `TRAITEMENT_MCF/SRC/data_formation.json`
+    
+    Returns:
+        A clean pandas dataframe.
     """
 
     # BASIC SETTINGS & INITIALIZATION (customizing json fields data type)
+    dtype = "string[pyarrow]"
     fields = ['siret', 'code_inventaire', 'code_rncp']
-    data_dtypes = {field: str for field in fields}
-    data_dtypes.update({f"code_nsf_{i}": str for i in range(1,4)})
-    data_dtypes.update({f"code_formacode_{i}": str for i in range(1,6)})
+    fields += ['code_departement', 'code_region']
+    data_dtypes = {field: dtype for field in fields}
+    data_dtypes.update({f"code_nsf_{i}": dtype for i in range(1,4)})
+    data_dtypes.update({f"code_formacode_{i}": dtype for i in range(1,6)})
 
     # LOAD THE JSON SOURCE FILE AND CHANGES IT INTO A PANDAS DATAFRAME
     data = pd.read_json(file, dtype=data_dtypes)
 
     # DATA CLEANING
-    clean_text_columns(data)
+    clean_text_columns(data)       # Remmoves extra spaces and white characters
+    clean_geographic_columns(data) # Replaces `None` by '00' (in dept. codes)
+    add_session_code_column_to_dataframe(data)  # Sets adhoc alphanumeric code.
 
     # REMOVES SIMPLON ROWS SINCE SIMPLON DATA ARE SCRAPED ELSEWHERE
     data.drop(index=data.index[data['siret'] == simplon], inplace=True)
 
+    # REMOVES ANY ROWS HAVING NO SIRET OR NO TRAINING LABEL
+    data.dropna(subset=['siret', 'intitule_formation'], inplace=True)
+
     # FUNCTION OUTPUT
     return data
-
-def clean_text_columns(data):
-    """
-    In-place removal of extra spaces and white characters (tab, newline, etc.)
-
-    Parameter(s):
-        data: Pandas dataframe to process with below required columns.
-              Required columns:
-              + `siret`
-              + `nom_of`
-              + `intitule_formation`
-              + `points_forts`
-
-    Returns: Nothing, the given dataframe is modified in place.
-    """
-
-    # PARSES THE ABOVE FUNCTION DOCSTRING TO GET THE LIST OF COLUMNS TO CLEAN 
-    cols = get_columns_from_docstring()
-
-    # REPLACES ANY (EXTRA) WHITE CHARACTERS (replaced by a single space)
-    columns = {col: r'\s+' for col in cols} # Defines a regex for each column 
-    data.replace(to_replace=columns, value=" ", regex=True, inplace=True)
-
-    # STRIP STRINGS (removes all spaces on string sides. i.e. left and right)
-    columns = {col: r'^\s*|\s*$' for col in cols}
-    data.replace(to_replace=columns, value="", regex=True, inplace=True)
 
 def get_columns_from_docstring():
     """
@@ -185,6 +239,108 @@ def get_columns_from_docstring():
 
     # FUNCTION OUTPUT
     return re.findall(regex, docstring)
+
+def clean_text_columns(data):
+    """
+    In-place removal of extra spaces and white characters (tab, newline, etc.)
+
+    Parameter(s):
+        data: Pandas dataframe to process with below required columns.
+              Required columns:
+              + `siret`
+              + `nom_of`
+              + `intitule_formation`
+              + `points_forts`
+              + `code_departement`
+              + `libelle_niveau_sortie_formation`
+              + `intitule_certification`
+
+    Returns: Nothing, the given dataframe is modified in place.
+    """
+
+    # PARSES THE ABOVE FUNCTION DOCSTRING TO GET THE LIST OF COLUMNS TO CLEAN 
+    cols = get_columns_from_docstring()
+
+    # REPLACES ANY (EXTRA) WHITE CHARACTERS (replaced by a single space)
+    columns = {col: r'\s+' for col in cols} # Defines a regex for each column 
+    data.replace(to_replace=columns, value=" ", regex=True, inplace=True)
+
+    # STRIP STRINGS (removes all spaces on string sides. i.e. left and right)
+    columns = {col: r'^\s*|\s*$' for col in cols}
+    data.replace(to_replace=columns, value="", regex=True, inplace=True)
+
+def clean_geographic_columns(data):
+    """
+    In-place cleaning of location codes (None values replaced by '00')
+
+    Parameter(s):
+        data: Pandas dataframe to process with following location columns.
+                + `code_departement`
+                + `code_region`
+
+    Returns: Nothing, the given dataframe is modified in place.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION (Set column replacement values)
+    columns = {'code_departement': '00', 'code_region': '00'}
+
+    # IN-PLACE CLEANING OF THE DATAFRAME
+    data.fillna(value=columns, inplace=True)
+
+def add_trainings_id_to_dataframe(data, session):
+    """
+    Retrieves trainings `Id` from the database and put them in the given frame.
+
+    Parameter(s):
+        data    : Pandas dataframe with 'siret' and 'intitule_formation'.
+        session : 'session' object to connect to the database.
+                  For any details see SQLAlchemy documentation.
+
+    Returns: Nothing, the given dataframe is modified in place.
+    """
+
+    # BASIC SETTINGS é INITIALIZATION
+    label = 'Formation_Id'
+    columns = ['siret', 'intitule_formation']
+
+    # GETS TRAINING ID CODES FOR TRAININGS IN THE CURRENT PANDAS DATAFRAME
+    courses = list(zip(*[data[column] for column in columns]))
+    trainindex = crud.get_trainings_id(session=session, trainings=set(courses))
+
+    # INSERTS ID CODES IN THE DATAFRAME
+    id_codes = [trainindex.get(course) for course in courses]
+    data.insert(loc=0, column=label, value=id_codes)
+
+def add_session_code_column_to_dataframe(data):
+    """
+    Retrieves trainings `Id` from the database and put them in the given frame.
+
+    Purpose of this function is only to implement an alphanumeric code.
+    This code will be part of the composite primary key defined for `sessions`
+    table. But Simplon related codes are only numeric. As for the json file,
+    there is not really equivalent code. The most relevant info to serve the
+    same purpose is 'code_departement'. But that latter code is also numeric
+    and can potentially interfere with the first one. Hence the choice to
+    change it into an alphanumeric code:
+    
+    We simply and use unicode to convert numeric codes.
+    ex: '00' is converted into 'aa00' because in unicode 'a' code is : 97 + 0
+
+    Parameter(s):
+        data    : Pandas dataframe with a `code_departement` column.
+
+    Returns: Nothing, the given dataframe is modified in place.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION
+    column = 'code_departement'
+    kwargs = {'loc': 0, 'column': 'Code_Session'}
+
+    # IMPLEMENTS AN AD-HOC FUNCTION TO CONVERT NUMBERS INTO LETTERS
+    convert = lambda x: ''.join(chr(97+int(i)) for i in x if i.isnumeric())
+
+    # INSERT 'Code_Session' COLUMN INTO THE DATAFRAME () 
+    data.insert(**kwargs, value=data[column].map(lambda x: f'{convert(x)}{x}'))
 
 if __name__ == "__main__":
     # data = get_dataframe()

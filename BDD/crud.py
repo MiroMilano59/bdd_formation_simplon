@@ -1,6 +1,7 @@
 # import dateparser, datetime
 from BDD import models
 from functools import wraps
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 import sqlalchemy.exc as alchemyError
 
@@ -64,6 +65,8 @@ def get_trainings(session=None):
     Parameter(s):
         session : OPTIONAL. SQLAlchemy session object. If not provided then one
                   temporary session will be open and closed at the end.
+    
+    Returns: A python list of tuples formated like ("siret", "libelle")
     """
 
     # BASIC SETTINGS & INITIALIZATIONS
@@ -72,7 +75,85 @@ def get_trainings(session=None):
     # FUNCTION OUTPUT (returns a set of the query)
     return session.query(*columns).all()
 
-# CENTRALIZED 'add' AND 'commit' FEATURES MANAGEMENT FEATURE
+@manage_session
+def get_modules(session=None):
+    """
+    Returns a set of all sessions (or modules) already in the 'sessions' table.
+
+    Parameter(s):
+        session : OPTIONAL. SQLAlchemy session object. If not provided then one
+                  temporary session will be open and closed at the end.
+    
+    Returns:
+        A python list of tuples formated like ("Formation_Id", "Code_Session")
+    """
+
+    # BASIC SETTINGS & INITIALIZATIONS
+    columns = [models.Sessions.Formation_Id, models.Sessions.Code_Session]
+
+    # FUNCTION OUTPUT (returns a set of the query)
+    return session.query(*columns).all()
+
+@manage_session
+def get_trainings_id(trainings=None, session=None, as_dict=True):
+    """
+    Returns the unique `Id` code for each of the specified trainings.
+ 
+    Parameter(s):
+        trainings (tuple | list, optional):
+            - If `None` (default), returns all known training `Id` codes.
+            - If a tuple like (`Siret_OF`, `Libelle`), returns the `Id` code
+              for that specific training.
+            - If a list of tuples, returns `Id` codes for these trainings.
+        session (session, optional): SQLAlchemy session object.
+            If not provided, a temporary session will be created and closed
+            automatically once query is complete.
+        as_dict (bool): Whether to get the result as a dictionary (default)
+                        or to get it as a simple list of tuples like:
+                        (`Siret_OF`, `Libelle`, `Id`)
+
+    Returns:
+        dict | list: Either a dictionary (default) where keys are the specified
+            training tuples and the values are the related `Id` codes. Or a
+            list of tuples (for details see `Parameter(s)` section)
+    """
+
+    # BASIC SETTINGS & INITIALIZATIONS
+    table = models.Formations                                  # Target table
+    #filters = True  # Default filter old version. Wait for days before delete!
+    filters = [True]                                           # Default filter
+    columns = ['Siret_OF', 'Libelle', 'Id']                    # Target columns
+    columns = [getattr(table, column) for column in columns]   # Target columns
+
+    # IMPLEMENTS USER-SPECIFIED FILTERS TO USE INSTEAD OF ABOVE DEFAULT FILTER
+    if not trainings is None:
+        # MANAGE THE USER'S CHOICE RELATING TO THE 'trainings' PARAMETER
+        #filters = [trainings] if isinstance(trainings, tuple) else trainings
+        fltrs = [trainings] if isinstance(trainings, tuple) else trainings
+
+        # IMPLEMENTS USER-SPECIFIED FILTERS
+        # OLD # filters = or_(*[(columns[0] == siret) & (columns[1] == libelle)
+        # OLD #                 for siret, libelle in filters])
+        fltrs = [(columns[0] == siret) & (columns[1] == libelle)
+                        for siret, libelle in fltrs]
+
+        # NEXT STAGE (chunking request to process it by batch)
+        batch = 500   # Batch size (sqlite cannot treat more than 1000 at once)
+        filters = [or_(*fltrs[i:i+batch]) for i in range(0, len(fltrs), batch)]
+
+    # EXECUTES QUERY
+    # OLD #query = session.query(*columns).filter(filters).all()
+    query = []
+    for conditions in filters:
+        query.extend(session.query(*columns).filter(conditions).all())
+
+    # FUNCTION OUTPUT (returns a set of the query)
+    if as_dict:
+        return {training[:-1]: training[-1] for training in query}
+    else:
+        return query
+
+# CENTRALIZED FEATURE FOR 'add' AND 'commit' DATABASE FEATURES MANAGEMENT
 @manage_session
 def add_and_commit(items, session=None, warner="", verbose=True):
     """
