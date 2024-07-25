@@ -40,6 +40,13 @@ def load_data():
     save_formacodes_to_database(data=data, session=session)
     update_codes_info_in_database(data=data, session=session)
     associate_trainings_and_rncp_codes(data=data, session=session)
+    associate_trainings_and_formacodes(data=data, session=session)
+    associate_trainings_and_rs_codes(data=data, session=session)
+    associate_trainings_and_nsf_codes(data=data, session=session)
+    associate_rncp_codes_and_formacodes(data=data, session=session)
+    associate_rs_codes_and_formacodes(data=data, session=session)
+    associate_rncp_and_nsf_codes(data=data, session=session)
+    associate_rs_and_nsf_codes(data=data, session=session)
 
     # CLOSING THE SESSION
     session.close()
@@ -386,7 +393,7 @@ def associate_trainings_and_rncp_codes(data, session):
 
     Returns:
         None: This function does not return any value. It simply adds new
-        association to the `RNCP` table within the database if ever there are
+        association to the `rncp` table within the database if ever there are
         any new associations to add.
     """
 
@@ -420,6 +427,194 @@ def associate_trainings_and_rncp_codes(data, session):
         # DATA SAVING
         associations.drop(index=associations.index[indexes_to_drop], inplace=True)
         associations.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+def associate_trainings_and_formacodes(data, session):
+    """
+    Fills association table between trainings and formacodes.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `Formation_Id`:
+                See 'save_trainings_to_database' function documentation.
+                Also refer to the 'add_trainings_id_to_dataframe' function.
+            + `code_formacode_1`
+            + `code_formacode_2`
+            + `code_formacode_3`
+            + `code_formacode_4`
+            + `code_formacode_5`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        association to the `formacodes` table within the database if ever there are
+        any new associations to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION (Management of column names)
+    cols = ['Formation_Id'] + [f'code_formacode_{i}' for i in range(1, 6)]
+    associations = data[cols].copy()     # Restrict dataset to relevant columns
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    kwargs = {'cde_type': 'formacode', 'session': session}
+    records = crud.get_trainings_associations_list(**kwargs)
+
+    # MERGES FORMACODE COLUMNS INTO NEW 'Formacode' COLUMN AND DROP ORIGINALS
+    formacodes = list(zip(*[associations[col] for col in cols[1:]]))
+    associations.insert(loc=1, column='Formacode', value=formacodes)
+    associations.drop(columns=cols[1:], inplace=True)
+
+    # EXPLODE 'Formacode' COLUMN INTO AS MANY ROWS AS ITEM LISTED PER CELLS
+    associations['Formacode'] = associations['Formacode'].apply(list)
+    associations = associations.explode(column='Formacode').dropna()
+
+    # AS WE NOW GOT SINGLE ASSOCIATIONS WE JUST DROP DUPLICATES ONES
+    associations = associations.drop_duplicates().sort_values('Formation_Id')
+
+    # RETRIEVES THE LISTING OF ALL NON DUPLICATE ASSOCIATIONS
+    # (maybe we have new ones among them! So we will compare with `records`)
+    pairs = list(zip(*[associations[col] for col in associations.columns]))
+
+    # LOCATES NEW TRAININGS TO SAVE AND DEDUCES INDEXES TO DROP FROM `courses`
+    to_record = set(pairs) - set(records)
+    indexes_to_drop = [pair not in to_record for pair in pairs]
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if not all(indexes_to_drop):
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'formacodes', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        associations.drop(index=associations.index[indexes_to_drop], inplace=True)
+        associations.to_sql(con=session.get_bind(), **kwargs)
+
+def associate_trainings_and_rs_codes(data, session):
+    """
+    Fills association table between trainings and RS codes.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `Formation_Id`:
+                See 'save_trainings_to_database' function documentation.
+                Also refer to the 'add_trainings_id_to_dataframe' function.
+            + `code_inventaire`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        association to the `rs` table within the database if ever there are
+        any new associations to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION (Management of column names)
+    cols = ['Formation_Id', 'code_inventaire']  # Dataframe columns
+    fields = ['Formation_Id', 'Code_RS']    # Database columns
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    kwargs = {'cde_type': 'rs', 'session': session}
+    records = crud.get_trainings_associations_list(**kwargs)
+
+    # RESTRICTS DATAFRAME TO ASSOCIATIONS ONLY AND DROPS ALL DUPLICATES ROWS
+    associations = data[cols][data['code_inventaire'] != '-1'].dropna()
+    associations = associations.drop_duplicates().sort_values('Formation_Id')
+
+    # RETRIEVES THE LISTING OF THE NON DUPLICATE ASSOCIATIONS (maybe new ones!) 
+    pairs = list(zip(*[associations[column] for column in cols]))
+
+    # LOCATES NEW TRAININGS TO SAVE AND DEDUCES INDEXES TO DROP FROM `courses`
+    to_record = set(pairs) - set(records)
+    indexes_to_drop = [pair not in to_record for pair in pairs]
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if not all(indexes_to_drop):
+        # CREATES A DICT. TO SYNCHRONIZE DATABASE AND DATAFRAME COLUMNS NAME
+        labels = {old: new for old, new in zip(cols, fields)}
+
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'rs', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        associations.drop(index=associations.index[indexes_to_drop], inplace=True)
+        associations.rename(columns=labels).to_sql(con=session.get_bind(), **kwargs)
+
+def associate_trainings_and_nsf_codes(data, session):
+    """
+    Fills association table between trainings and nsf codes.
+
+    Parameters:
+        data (pd.DataFrame): A pandas DataFrame with the following columns:
+            + `Formation_Id`:
+                See 'save_trainings_to_database' function documentation.
+                Also refer to the 'add_trainings_id_to_dataframe' function.
+            + `code_nsf_1`
+            + `code_nsf_2`
+            + `code_nsf_3`
+        session (Session): A SQLAlchemy session object for database connection. 
+            For more details, refer to the SQLAlchemy documentation.
+
+    Returns:
+        None: This function does not return any value. It simply adds new
+        association to the `nsf` table within the database if ever there are
+        any new associations to add.
+    """
+
+    # BASIC SETTINGS & INITIALIZATION (Management of column names)
+    cols = ['Formation_Id'] + [f'code_nsf_{i}' for i in range(1, 4)]
+    associations = data[cols].copy()     # Restrict dataset to relevant columns
+
+    # GETS ALL CODES ALREADY REGISTERED IN THE DATABASE (to compare)
+    kwargs = {'cde_type': 'nsf', 'session': session}
+    records = crud.get_trainings_associations_list(**kwargs)
+
+    # MERGES FORMACODE COLUMNS INTO NEW 'Formacode' COLUMN AND DROP ORIGINALS
+    formacodes = list(zip(*[associations[col] for col in cols[1:]]))
+    associations.insert(loc=1, column='Code_NSF', value=formacodes)
+    associations.drop(columns=cols[1:], inplace=True)
+
+    # EXPLODE 'Formacode' COLUMN INTO AS MANY ROWS AS ITEM LISTED PER CELLS
+    associations['Code_NSF'] = associations['Code_NSF'].apply(list)
+    associations = associations.explode(column='Code_NSF').dropna()
+
+    # AS WE NOW GOT SINGLE ASSOCIATIONS WE JUST DROP DUPLICATES ONES
+    associations = associations.drop_duplicates().sort_values('Formation_Id')
+
+    # RETRIEVES THE LISTING OF ALL NON DUPLICATE ASSOCIATIONS
+    # (maybe we have new ones among them! So we will compare with `records`)
+    pairs = list(zip(*[associations[col] for col in associations.columns]))
+
+    # LOCATES NEW TRAININGS TO SAVE AND DEDUCES INDEXES TO DROP FROM `courses`
+    to_record = set(pairs) - set(records)
+    indexes_to_drop = [pair not in to_record for pair in pairs]
+
+    # SAVE UNKNOWN TRAININGS INTO THE DEDICATED TABLE OF THE DATABASE
+    if not all(indexes_to_drop):
+        # PARAMETERS FOR SAVING PROCESS (allow short code and pep8 compliance)
+        kwargs = {'name': 'nsf', 'index': False, 'if_exists': 'append'}
+
+        # DATA SAVING
+        associations.drop(index=associations.index[indexes_to_drop], inplace=True)
+        associations.to_sql(con=session.get_bind(), **kwargs)
+
+def associate_rncp_codes_and_formacodes(data, session):
+    """Not implemented yet but, as indicated, purpose is to populate the
+    association table between RNCP codes and Formacodes."""
+    pass
+
+def associate_rs_codes_and_formacodes(data, session):
+    """Not implemented yet but, as indicated, purpose is to populate the
+    association table between RS codes and Formacodes."""
+    pass
+
+def associate_rncp_and_nsf_codes(data, session):
+    """Not implemented yet but, as indicated, purpose is to populate the
+    association table between RNCP codes and NSF codes."""
+    pass
+
+def associate_rs_and_nsf_codes(data, session):
+    """Not implemented yet but, as indicated, purpose is to populate the
+    association table between RS codes and NSF codes."""
+    pass
 
 # 3. Auxiliary features (i.e. various & helper functions)
 def get_dataframe(file: str = file):
