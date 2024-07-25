@@ -1,5 +1,5 @@
 from sqlalchemy import Column, ForeignKey, Integer, Enum
-from sqlalchemy import String, Date
+from sqlalchemy import String, Date, Numeric, Boolean
 from sqlalchemy import create_engine, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.orm import relationship, declared_attr, column_property
@@ -159,6 +159,7 @@ class Sessions(SimplonDB):
     Code_Session = Column(String, nullable=False)
     Ville = Column(String, nullable=True)
     Nom_Dept = Column(String, nullable=True)
+    Code_Dept = Column(Integer, nullable=True) # Ususal french dept. number
     Nom_Region = Column(String, nullable=True)
     Code_Dept = Column(String, nullable=False)      # Usual french dept. number
     Code_Region = Column(String, nullable=True)
@@ -176,7 +177,7 @@ class Sessions(SimplonDB):
     formation = relationship('Formations', back_populates='sessions')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
-    __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Dept'),
+    __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
                                            name='Composite_primary_key'),)
     # __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
     #                                        name='Composite_primary_key'),)

@@ -2,7 +2,6 @@ import inspect
 import regex as re
 import pandas as pd
 from BDD import models, crud
-import time
 
 # BASIC SETTINGS & INITIALIZATION
 file = "TRAITEMENT_MCF/SRC/data_formation.json"  # Path to the most recent json
