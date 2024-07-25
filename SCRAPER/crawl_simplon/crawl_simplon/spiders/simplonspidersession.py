@@ -10,8 +10,9 @@ class SimplonspiderSpiderSession(scrapy.Spider):
     start_urls = ["https://simplon.co/notre-offre-de-formation.html#nos-formations0"]
 
     custom_settings = {
-        'ITEM_PIPELINES' : {
+        'ITEM_PIPELINES': {
             "crawl_simplon.pipelines.CrawlSimplonPipelineSession": 310,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineSessionSave": 315,
         },
         'DUPEFILTER_CLASS': 'scrapy.dupefilters.BaseDupeFilter',
     }
@@ -35,7 +36,7 @@ class SimplonspiderSpiderSession(scrapy.Spider):
         item = response.meta["item"]
         sessions = response.xpath("//div[@class='smp-card']")
 
-        # Récupérer l'id et le nom url de chque formation
+        # Récupérer l'id et le nom url de chaque formation
         url = response.url
         pattern = re.compile(r'https://simplon\.co/i-apply/([^/]+)/(\d+)')
         match = pattern.search(url)
@@ -56,5 +57,25 @@ class SimplonspiderSpiderSession(scrapy.Spider):
             item['Date_Debut'] = [date.strip() for date in session.xpath(".//div[@class='card-session-info calendar']/text()").getall() if date.strip()]
             item['Duree'] = [duree.strip() for duree in session.xpath(".//i[contains(text(),'hourglass_empty')]/parent::div/text()").getall() if duree.strip()]
             item['Niveau_Sortie'] = [niveau.strip() for niveau in session.xpath(".//i[contains(text(),'school')]/parent::div/text()").getall() if niveau.strip()]
-            yield item
+            item['Ville'] = [ville.strip() for ville in session.xpath(".//div[@class='card-content']//text()").getall() if ville.strip()]
 
+
+            # Extract the session detail URL and follow it
+            session_url = session.xpath(".//a[contains(text(),'Découvrez')]/@href").get()
+            if session_url:
+                yield scrapy.Request(response.urljoin(session_url), meta={"item": item}, callback=self.parse_session_detail)
+            else:
+                yield item
+
+    def parse_session_detail(self, response):
+        item = response.meta["item"]
+        # Extract the code session from the URL
+        url = response.url
+        self.logger.info(f"Processing session URL: {url}")  # Debug statement
+        pattern = re.compile(r'https://simplon\.co/session/[^/]+/(\d+)$')
+        match = pattern.search(url)
+        if match:
+            item["Code_Session"] = match.group(1)
+        else:
+            self.logger.warning(f"URL did not match pattern: {url}")  # Debug statement
+        yield item

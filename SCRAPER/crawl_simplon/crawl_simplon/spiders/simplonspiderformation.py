@@ -12,6 +12,19 @@ class SimplonspiderSpiderFormation(scrapy.Spider):
     custom_settings = {
         'ITEM_PIPELINES' : {
             "crawl_simplon.pipelines.CrawlSimplonPipelineFormation": 300,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineRncpInfoSave": 310,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormacodesInfoSave": 311,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineRsInfoSave": 312,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineNsfInfoSave": 313,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationSave": 314,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationFormacodeSave": 320,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationNsfSave": 325,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRsfSave": 330,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRncpfSave": 331,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRncpNsfSave": 332,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRncpFormacodeSave": 333,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRsNsfSave": 334,
+            "crawl_simplon.pipelines.CrwalSimplonPipelineFormationRsFormacodeSave": 335,
         },
         'DUPEFILTER_CLASS': 'scrapy.dupefilters.BaseDupeFilter',
     }

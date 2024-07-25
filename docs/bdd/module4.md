@@ -1,49 +1,42 @@
-# brief_scraping_scrapy
+# Schema
 
-## Contexte
-...
-
-## Objectifs
- - ...
- - ...
-## Les données à scrapper
-...
-
-
-## Les associations
- ****
+[Here to Display Schema](simplondb.png)
 
 ```mermaid
----
-title: MCD Associations
----
 erDiagram
+
     Organismes {
         String Nom
         String Siret PK
     }
+
     Codes_Info {
         String Code PK
         String Libelle
     }
+
     RNCP_Info {
         String Code PK
         String Libelle
         Date Date_Fin
     }
+
     Formacodes_Info {
         String Code PK
         String Libelle
     }
+
     RS_Info {
         String Code PK
         String Libelle
         Date Date_Fin
     }
+
     NSF_Info {
         String Code PK
         String Libelle
     }
+
     Formations {
         Integer Id PK
         String Libelle
@@ -51,6 +44,7 @@ erDiagram
         String Simplon_Id
         String Resume_Programme
     }
+
     Sessions {
         Integer Formation_Id FK
         String Code_Session
@@ -68,34 +62,42 @@ erDiagram
         String Libelle_Session
         Enum Statut
     }
+
     RNCP {
         Integer Formation_Id FK
         String Code_RNCP FK
     }
+
     Formacodes {
         Integer Formation_Id FK
         String Formacode FK
     }
+
     RS {
         Integer Formation_Id FK
         String Code_RS FK
     }
+
     NSF {
         Integer Formation_Id FK
         String Code_NSF FK
     }
+
     RNCP_Formacodes {
         String Code_RNCP FK
         String Formacode FK
     }
+
     RNCP_Codes_NSF {
         String Code_RNCP FK
         String Code_NSF FK
     }
+    
     RS_Formacodes {
         String Code_RS FK
         String Formacode FK
     }
+
     RS_Codes_NSF {
         String Code_RS FK
         String Code_NSF FK
@@ -119,7 +121,4 @@ erDiagram
     Formacodes_Info ||--o{ RS_Formacodes : "codes_rs"
     RS_Info ||--o{ RS_Codes_NSF : "codes_nsf"
     NSF_Info ||--o{ RS_Codes_NSF : "codes_rs"
-
 ```
-
-
