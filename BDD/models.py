@@ -65,7 +65,7 @@ class Organismes(SimplonDB):
     __tablename__ = 'organismes'
 
     # TABLE SPECIFIC COLUMNS
-    Nom = Column(String, nullable=False)
+    Nom = Column(String, nullable=True)
     Siret = Column(String, primary_key=True, autoincrement=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -82,7 +82,7 @@ class Codes_Info(SimplonDB): # Abstract table (code factorization purpose)
 
     # COMMON COLUMNS OF THE DERIVED TABLES
     Code = Column(String, primary_key=True, autoincrement=False)
-    Libelle = Column(String, nullable=False)
+    Libelle = Column(String, nullable=True)
 
 class RNCP_Info(Codes_Info):
     # RAW PARAMETERS AND SETINGS
@@ -157,11 +157,12 @@ class Sessions(SimplonDB):
     # SPECIFIC TABLE COLUMNS
     Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_Session = Column(String, nullable=False)
+    Ville = Column(String, nullable=True)
     Nom_Dept = Column(String, nullable=True)
     Code_Dept = Column(Integer, nullable=True) # Ususal french dept. number
     Nom_Region = Column(String, nullable=True)
-    Code_Region = Column(Integer, nullable=True)
-    Ville = Column(String, nullable=True)
+    Code_Dept = Column(String, nullable=False)      # Usual french dept. number
+    Code_Region = Column(String, nullable=True)
     Date_Debut = Column(Date, nullable=True)
     Date_Lim_Cand = Column(Date, nullable=True)
     Duree = Column(String, nullable=True)
@@ -169,7 +170,8 @@ class Sessions(SimplonDB):
     Distanciel = Column(Integer, nullable=False, server_default='0')
     Niveau_Sortie = Column(String, nullable=True)
     Libelle_Session = Column(String, nullable=True)
-    Statut = Column(Enum('Active', 'Inactive', name='status_enum'), nullable=False, server_default='Active')
+    Statut = Column(Enum('Active', 'Inactive', name='status_enum'),
+                    nullable=False, server_default='Active')
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
     formation = relationship('Formations', back_populates='sessions')
@@ -177,6 +179,8 @@ class Sessions(SimplonDB):
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
                                            name='Composite_primary_key'),)
+    # __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
+    #                                        name='Composite_primary_key'),)
 
 # Secondary association tables
 class Codes_Formations(SimplonDB): # Abstract table (for code factorization)
