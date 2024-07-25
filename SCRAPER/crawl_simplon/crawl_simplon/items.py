@@ -36,4 +36,7 @@ class CrawlSimplonItemSession(scrapy.Item):
     Alternance = scrapy.Field()
     Distance = scrapy.Field()
     NomSessionUrl = scrapy.Field()
-    IdSession = scrapy.Field()
+    IdSession = scrapy.Field() 
+    Code_Session = scrapy.Field()
+    Ville = scrapy.Field()
+    Code_Dept = scrapy.Field()

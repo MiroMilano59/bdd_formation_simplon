@@ -1,5 +1,6 @@
 import pandas as pd
-from BDD import models, crud
+from BDD import crud
+from BDD import models
 
 # BASIC SETTINGS & INITIALIZATION
 file = "TRAITEMENT_MCF\SRC\data_formation.json"  # Path to the most recent json
