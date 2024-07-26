@@ -299,7 +299,7 @@ class RS_Codes_NSF(SimplonDB):
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
     code_rs = relationship('RS_Info', back_populates='codes_nsf')
-    code_nsf = relationship('NFS_Info', back_populates='codes_rs')
+    code_nsf = relationship('NSF_Info', back_populates='codes_rs')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
     __table_args__ = (PrimaryKeyConstraint(*('Code_RS', 'Code_NSF'),
