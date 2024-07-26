@@ -1,0 +1,29 @@
+site_name: "BDD-Scraping-API-SImplon"
+nav: # on définit l'architecture de la doc en faisant les liens vers les fichiers dans docs
+  - Accueil: index.md
+  - Documentation:
+      - Introduction: introduction.md
+      - BDD:
+          - Introduction: bdd/module1.md
+          - Conceptual model: bdd/module2.md
+          - Documentation: bdd/module3.md
+          - Schema: bdd/module4.md
+theme:
+  name: readthedocs #on peut utiliser d'autre theme de doc
+
+markdown_extensions:
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+plugins:
+  - search
+  - mkdocstrings: #ce la permet d'intégrer directement les docstrings
+      handlers:
+        python:
+          options:
+            docstring_style: google
+            rendering:
+              show_source: true

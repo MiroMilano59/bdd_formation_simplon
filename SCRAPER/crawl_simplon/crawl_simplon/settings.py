@@ -29,6 +29,11 @@ DEFAULT_REQUEST_HEADERS = {
 ITEM_PIPELINES = {
    "crawl_simplon.pipelines.CrawlSimplonPipelineFormation": 300,
    "crawl_simplon.pipelines.CrawlSimplonPipelineSession": 310,
+   "crawl_simplon.pipelines.CrwalSimplonPipelineFormacodesInfoSave": 311,
+   "crawl_simplon.pipelines.CrwalSimplonPipelineRsInfoSave": 312,
+   "crawl_simplon.pipelines.CrwalSimplonPipelineNsfInfoSave": 313,
+   "crawl_simplon.pipelines.CrwalSimplonPipelineFormationSave": 314,
+
 }
 
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer
+from sqlalchemy import Column, ForeignKey, Integer, Enum
 from sqlalchemy import String, Date, Numeric, Boolean
 from sqlalchemy import create_engine, PrimaryKeyConstraint, UniqueConstraint
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -65,7 +65,7 @@ class Organismes(SimplonDB):
     __tablename__ = 'organismes'
 
     # TABLE SPECIFIC COLUMNS
-    Nom = Column(String, nullable=False)
+    Nom = Column(String, nullable=True)
     Siret = Column(String, primary_key=True, autoincrement=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -73,16 +73,16 @@ class Organismes(SimplonDB):
 
 class Codes_Info(SimplonDB): # Abstract table (code factorization purpose)
     """
-    Helps factorizing code as it is a common part of some other sub classes
+    Almost ready-to-use table for all code "Info" tables.
 
-    Main purpose is to give an almost ready to use table for all code tables.
+    Helps factorizing code as it is a common part of some other sub classes
     """
     # RAW PARAMETERS AND SETINGS
     __abstract__ = True
 
     # COMMON COLUMNS OF THE DERIVED TABLES
     Code = Column(String, primary_key=True, autoincrement=False)
-    Libelle = Column(String, nullable=False)
+    Libelle = Column(String, nullable=True)
 
 class RNCP_Info(Codes_Info):
     # RAW PARAMETERS AND SETINGS
@@ -135,7 +135,7 @@ class Formations(SimplonDB):
     Id = Column(Integer, primary_key=True, autoincrement=True)
     Libelle = Column(String, nullable=False)
     Siret_OF = Column(*foreign_key('organismes.Siret'), nullable=False)
-    Niveau_Sortie = Column(String, nullable=True)
+    Simplon_Id = Column(String, nullable=True)
     Resume_Programme = Column(String, nullable=True)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy model and use)
@@ -156,32 +156,50 @@ class Sessions(SimplonDB):
 
     # SPECIFIC TABLE COLUMNS
     Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
-    Nom_Dept = Column(String, nullable=True)
-    Code_Dept = Column(Integer, nullable=False) # Ususal french dept. number
-    Nom_Region = Column(String, nullable=True)
-    Code_Region = Column(Integer, nullable=True)
+    Code_Session = Column(String, nullable=False)
     Ville = Column(String, nullable=True)
+    Nom_Dept = Column(String, nullable=True)
+    Code_Dept = Column(Integer, nullable=True) # Ususal french dept. number
+    Nom_Region = Column(String, nullable=True)
+    Code_Dept = Column(String, nullable=False)      # Usual french dept. number
+    Code_Region = Column(String, nullable=True)
     Date_Debut = Column(Date, nullable=True)
     Date_Lim_Cand = Column(Date, nullable=True)
     Duree = Column(String, nullable=True)
-    Alternance = Column(Boolean, nullable=True, default=False)
-    Distanciel = Column(Boolean, nullable=True, default=False)
-    Libelle_certif = Column(String, nullable=False)
+    Alternance = Column(Integer, nullable=False, server_default='0')
+    Distanciel = Column(Integer, nullable=False, server_default='0')
+    Niveau_Sortie = Column(String, nullable=True)
+    Libelle_Session = Column(String, nullable=True)
+    Statut = Column(Enum('Active', 'Inactive', name='status_enum'),
+                    nullable=False, server_default='Active')
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
     formation = relationship('Formations', back_populates='sessions')
 
     # DEFINING SCHEMA SPECIFIC CONSTRAINTS
-    __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Dept'),
+    __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
                                            name='Composite_primary_key'),)
+    # __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_Session'),
+    #                                        name='Composite_primary_key'),)
 
 # Secondary association tables
-class RNCP(SimplonDB):
+class Codes_Formations(SimplonDB): # Abstract table (for code factorization)
+    """
+    Almost ready-to-use table for associations between codes and trainings.
+
+    Helps factorizing code as it is a common part of some other sub classes.
+    """
+    # RAW PARAMETERS AND SETINGS
+    __abstract__ = True
+
+    # COMMON COLUMNS OF THE DERIVED TABLES
+    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
+
+class RNCP(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'rncp'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RNCP = Column(*foreign_key('rncp_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -192,12 +210,11 @@ class RNCP(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_RNCP'),
                                            name='Composite_primary_key'),)
 
-class Formacodes(SimplonDB):
+class Formacodes(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'formacodes'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Formacode = Column(*foreign_key('formacodes_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -208,12 +225,11 @@ class Formacodes(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Formacode'),
                                            name='Composite_primary_key'),)
 
-class RS(SimplonDB):
+class RS(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'rs'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_RS = Column(*foreign_key('rs_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)
@@ -224,12 +240,11 @@ class RS(SimplonDB):
     __table_args__ = (PrimaryKeyConstraint(*('Formation_Id', 'Code_RS'),
                                            name='Composite_primary_key'),)
 
-class NSF(SimplonDB):
+class NSF(Codes_Formations):
     # RAW PARAMETERS AND SETINGS
     __tablename__ = 'nsf'
 
     # TABLE COLUMNS
-    Formation_Id = Column(*foreign_key('formations.Id'), nullable=False)
     Code_NSF = Column(*foreign_key('nsf_info.Code'), nullable=False)
 
     # DEFINING PURE ORM RELATIONSHIPS (i.e. enhancing SQLAlchemy features)

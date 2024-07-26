@@ -1,0 +1,6 @@
+La colonne 'points_forts' du fichier json contient souvent des balises html. NETTOYAGE ?
+La notion d'alternance n'est pas simple à déterminer dans les données json. 4 Colonnes ont cette info dont 'points_forts' mais pour celle-ci le terme alternance est souvent utilisé pour autre chose.
+la colonne 'code_departement' est assez propre mais il faut la garder en type string
+la colonne 'code_region' contient des 'None' mais aussi 2 modalités dont on ignore la signification précise : 'COM' et 'AUTRE' 
+
+Mon thème vs code était "one dark modern" qui est top mais moins adapté par forte luminosité (travail en terrasse).

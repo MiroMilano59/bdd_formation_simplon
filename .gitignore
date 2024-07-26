@@ -167,8 +167,11 @@ cython_debug/
 TRAITEMENT_MCF/SRC/*.json
 TRAITEMENT_MCF/*.ipynb
 
+# Ignore .json file download history
+last_update_date.txt
+
 # Ignore sqlite data base files
 *.db
 
-# CSV
+# Ignore CSV files
 *.csv
