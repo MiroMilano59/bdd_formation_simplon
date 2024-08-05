@@ -1,14 +1,14 @@
 import requests
 import json
 import dateparser
-
+#from TRAITEMENT_MCF.treat_files import load_data
 from urllib.parse import urlencode, quote_plus
 
 base_url = "https://opendata.caissedesdepots.fr/api/explore/v2.1/catalog/datasets/moncompteformation_catalogueformation/exports/json"
 query_params = {
-    "select": "date_extract, nom_of, nom_departement, nom_region, type_referentiel, code_inventaire, intitule_certification, libelle_niveau_sortie_formation, code_formacode_1, code_formacode_2, code_formacode_3, code_formacode_4, code_formacode_5, libelle_code_formacode_principal, libelle_nsf_1, code_nsf_1, code_certifinfo, siret, intitule_formation, points_forts, nb_action, nb_session_active, nb_session_a_distance, nombre_heures_total_min, nombre_heures_total_max, nombre_heures_total_mean, frais_ttc_tot_min, frais_ttc_tot_max, frais_ttc_tot_mean, code_departement, code_region",
+    #"select": "date_extract, nom_of, nom_departement, nom_region, type_referentiel, code_rncp, code_inventaire, intitule_certification, libelle_niveau_sortie_formation, code_formacode_1, code_formacode_2, code_formacode_3, code_formacode_4, code_formacode_5, libelle_code_formacode_principal, libelle_nsf_1, code_nsf_1, code_nsf_2, code_nsf_3, code_certifinfo, siret, intitule_formation, points_forts, nb_action, nb_session_active, nb_session_a_distance, nombre_heures_total_min, nombre_heures_total_max, nombre_heures_total_mean, frais_ttc_tot_min, frais_ttc_tot_max, frais_ttc_tot_mean, code_departement, code_region",
     "where": 'libelle_nsf_1 like "Informatique, traitement de l\'information, réseaux de transmission"',
-    "limit": 5,
+    "limit": -1,
     "offset": 0,
     "timezone": "UTC",
     "include_links": "false",
@@ -77,7 +77,8 @@ def download_json_data(url_to_json):
             else:
                 save_last_update_date_on_file(date=last_update_date)
                 # Enregistrer les données dans un fichier JSON
-                with open('TRAITEMENT_MCF/SRC/data_formation.json', 'w', encoding='utf-8') as json_file:
+                #with open('TRAITEMENT_MCF/SRC/data_formation.json', 'w', encoding='utf-8') as json_file:
+                with open('SRC/data_formation.json', 'w', encoding='utf-8') as json_file:
                     json.dump(data_formation_json, json_file, ensure_ascii=False, indent=4)
         else:
             print("Aucune nouvelle mise à jour")

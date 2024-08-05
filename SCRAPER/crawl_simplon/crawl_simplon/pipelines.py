@@ -18,7 +18,8 @@ from itemadapter import ItemAdapter
 from geopy.geocoders import Nominatim
 
 # Imports internes
-from simplonbd.models import db_connect 
+from simplonbd.models import db_connect
+#from BDD.models import db_connect
 from simplonbd import crud_dai 
 import sqlalchemy.exc as alchemyError
 

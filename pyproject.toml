@@ -25,6 +25,7 @@ simplonbd = "0.1.0"
 mkdocs-mermaid2-plugin = "^1.1.1"
 mkdocs-material = "^9.5.30"
 pymdown-extensions = "^10.8.1"
+urllib3 = "^2.2.2"
 
 [tool.poetry.scripts]
 run-app = "scripts.run_app:main"

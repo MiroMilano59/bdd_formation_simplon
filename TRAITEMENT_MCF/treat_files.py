@@ -14,7 +14,8 @@ def get_session():
     Needs no arguments. Returns a session object (see SQLAlchemy for details).
     """
 
-    session = models.db_connect()
+    url = 'sqlite:///./SCRAPER/crawl_simplon/crawl_simplon/simplon.db'
+    session = models.db_connect(url=url)
     return session()
 
 # DATA LOADING & SAVING (i.e. filling the 'simplon' database with the data)
